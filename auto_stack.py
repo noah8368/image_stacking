@@ -1,8 +1,8 @@
 import os
+#from tkinter import image_names
 import cv2
 import numpy as np
 from time import time
-
 
 
 # Align and stack images with ECC method
@@ -13,16 +13,30 @@ def stackImagesECC(file_list):
     first_image = None
     stacked_image = None
 
+    # Specify the number of iterations.
+    NUM_ITER = 5
+    # Specify the threshold of the increment in the correlation coefficient
+    # between two iterations
+    TERMINATION_EPS = 1e-10
+    # Define termination criteria
+    CRITERIA = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, NUM_ITER,
+                TERMINATION_EPS)
+
     for file in file_list:
-        image = cv2.imread(file,1).astype(np.float32) / 255
         print(file)
+        image = cv2.imread(file, 1).astype(np.float32) / 255
         if first_image is None:
             # convert to gray scale floating point image
-            first_image = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+            first_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             stacked_image = image
         else:
             # Estimate perspective transform
-            s, M = cv2.findTransformECC(cv2.cvtColor(image,cv2.COLOR_BGR2GRAY), first_image, M, cv2.MOTION_HOMOGRAPHY)
+            s, M = cv2.findTransformECC(cv2.cvtColor(image,
+                                                     cv2.COLOR_BGR2GRAY),
+                                        first_image,
+                                        M, cv2.MOTION_HOMOGRAPHY,
+                                        CRITERIA, inputMask=None,
+                                        gaussFiltSize=1)
             w, h, _ = image.shape
             # Align image to first image
             image = cv2.warpPerspective(image, M, (h, w))
@@ -48,7 +62,7 @@ def stackImagesKeypointMatching(file_list):
     first_des = None
     for file in file_list:
         print(file)
-        image = cv2.imread(file,1)
+        image = cv2.imread(file, 1)
         imageF = image.astype(np.float32) / 255
 
         # compute the descriptors with ORB
@@ -94,7 +108,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('input_dir', help='Input directory of images ()')
     parser.add_argument('output_image', help='Output image name')
-    parser.add_argument('--method', help='Stacking method ORB (faster) or ECC (more precise)')
+    parser.add_argument('--method',
+                        help='Stacking method ORB (faster) or ECC (more precise)')
     parser.add_argument('--show', help='Show result image',action='store_true')
     args = parser.parse_args()
 
@@ -105,7 +120,8 @@ if __name__ == '__main__':
 
     file_list = os.listdir(image_folder)
     file_list = [os.path.join(image_folder, x)
-                 for x in file_list if x.endswith(('.jpg', '.png','.bmp'))]
+                 for x in file_list if x.endswith(('.jpeg', '.jpg', '.png',
+                                                   '.bmp'))]
 
     if args.method is not None:
         method = str(args.method)
@@ -121,7 +137,7 @@ if __name__ == '__main__':
         stacked_image = stackImagesECC(file_list)
 
     elif method == 'ORB':
-        #Stack images using ORB keypoint method
+        # Stack images using ORB keypoint method
         description = "Stacking images using ORB method"
         print(description)
         stacked_image = stackImagesKeypointMatching(file_list)
@@ -130,10 +146,10 @@ if __name__ == '__main__':
         print("ERROR: method {} not found!".format(method))
         exit()
 
-    print("Stacked {0} in {1} seconds".format(len(file_list), (time()-tic) ))
+    print("Stacked {0} in {1} seconds".format(len(file_list), (time()-tic)))
 
     print("Saved {}".format(args.output_image))
-    cv2.imwrite(str(args.output_image),stacked_image)
+    cv2.imwrite(str(args.output_image), stacked_image)
 
     # Show image
     if args.show:
