@@ -22,7 +22,6 @@ def stackImagesECC(file_list):
                 TERMINATION_EPS)
 
     for file in file_list:
-        print(file)
         image = cv2.imread(file, 1).astype(np.float32) / 255
         if first_image is None:
             # convert to gray scale floating point image
@@ -60,7 +59,6 @@ def stackImagesKeypointMatching(file_list):
     first_kp = None
     first_des = None
     for file in file_list:
-        print(file)
         image = cv2.imread(file, 1)
         imageF = image.astype(np.float32) / 255
 
